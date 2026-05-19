@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>诺苏彝文字符显示 - 完整字形表</title>
+    <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 1.5em;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            background: #fff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-label {
+            color: #666;
+        }
+
+        .status-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .loading-indicator {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #ddd;
+            border-top-color: #333;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .font-loaded {
+            color: #28a745;
+        }
+
+        .font-error {
+            color: #dc3545;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 15px;
+            background: #fff;
+            padding: 12px 16px;
+            border-radius: 8px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+        }
+
+        .control-group label {
+            color: #666;
+        }
+
+        .control-group input[type="number"] {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 70px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: #333;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            background: #555;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 180px;
+            max-width: 300px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .glyph-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 8px;
+            background: #fff;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .glyph-cell {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            padding: 4px;
+            position: relative;
+        }
+
+        .glyph-cell:hover {
+            border-color: #333;
+        }
+
+        .glyph-char {
+            line-height: 1.2;
+            margin-bottom: 2px;
+            width: 100%;
+            height: 70%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .glyph-char svg {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .glyph-info {
+            font-size: 10px;
+            color: #999;
+            text-align: center;
+        }
+
+        .glyph-index {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 9px;
+            color: #ccc;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            padding: 12px;
+            background: #fff;
+            border-radius: 8px;
+        }
+
+        .pagination button {
+            padding: 6px 12px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #333;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            border-color: #333;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .pagination .page-info {
+            color: #666;
+            font-size: 14px;
+            white-space: nowrap;
+            padding: 0 8px;
+        }
+
+        .pagination input[type="number"] {
+            width: 60px;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .detail-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+            min-width: 280px;
+            max-width: 90vw;
+            display: none;
+        }
+
+        .detail-panel.show {
+            display: block;
+        }
+
+        .detail-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 999;
+            display: none;
+        }
+
+        .detail-overlay.show {
+            display: block;
+        }
+
+        .detail-char {
+            font-size: 5em;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .detail-info {
+            color: #333;
+            font-size: 14px;
+        }
+
+        .detail-info p {
+            margin: 6px 0;
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .detail-info p:last-child {
+            border-bottom: none;
+        }
+
+        .detail-info strong {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .detail-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .detail-close:hover {
+            background: #333;
+            color: #fff;
+        }
+
+        .tab-container {
+            margin-bottom: 16px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 0;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: #e5e5e5;
+            border: none;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+            color: #666;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .tab-btn.active {
+            background: #fff;
+            color: #333;
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: #eee;
+        }
+
+        .tab-content {
+            background: #fff;
+            padding: 16px;
+            border-radius: 0 8px 8px 8px;
+            min-height: 200px;
+        }
+
+        .progress-bar {
+            width: 120px;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #333;
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+
+        @media (max-width: 768px) {
+            .glyph-grid {
+                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+                gap: 6px;
+                padding: 12px;
+            }
+            
+            h1 {
+                font-size: 1.2em;
+            }
+            
+            .status-bar {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ꀊꂷꐥꇇꐥ - 诺苏彝文字形浏览器</h1>
+        <p class="subtitle">Yi Syllable Font Glyph Browser</p>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-label">字体加载:</span>
+                <span id="loadStatus">
+                    <span class="loading-indicator"></span> 加载中...
+                </span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">字形总数:</span>
+                <span class="status-value" id="totalGlyphs">-</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">已显示:</span>
+                <span class="status-value" id="displayedCount">0</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchTab('all')">全部字形</button>
+                <button class="tab-btn" onclick="switchTab('named')">命名字形</button>
+                <button class="tab-btn" onclick="switchTab('pua')">私有区 (PUA)</button>
+            </div>
+            <div class="tab-content">
+                <div id="tab-all" class="tab-panel">
+                    <div class="controls">
+                        <div class="control-group">
+                            <label>每页显示:</label>
+                            <input type="number" id="pageSize" value="200" min="50" max="500" onchange="loadGlyphs()">
+                        </div>
+                        <div class="search-box">
+                            <input type="text" id="searchInput" placeholder="搜索字形名称或索引 (输入数字)..." onkeyup="handleSearch(event)">
+                        </div>
+                        <button class="btn" id="viewAllBtn" onclick="viewAllGlyphs()">显示全部字形</button>
+                    </div>
+                    <div class="glyph-grid" id="glyphGrid"></div>
+                </div>
+                <div id="tab-named" class="tab-panel" style="display:none;">
+                    <div class="glyph-grid" id="namedGlyphGrid"></div>
+                </div>
+                <div id="tab-pua" class="tab-panel" style="display:none;">
+                    <div class="glyph-grid" id="puaGlyphGrid"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
+    <div class="detail-panel" id="detailPanel">
+        <button class="detail-close" onclick="closeDetail()">×</button>
+        <div class="detail-char" id="detailChar"></div>
+        <div class="detail-info" id="detailInfo"></div>
+    </div>
+
+    <script>
+        let font = null;
+        let allGlyphs = [];
+        let currentPage = 1;
+        let pageSize = 200;
+        let currentTab = 'all';
+        let displayedGlyphs = [];
+
+        // 加载字体
+        document.getElementById('loadStatus').innerHTML = '<span class="loading-indicator"></span> 正在加载字体...';
+
+        fetch('YiSyllableFont-Regular.ttf')
+            .then(response => response.arrayBuffer())
+            .then(data => {
+                font = opentype.parse(data);
+                const numGlyphs = font.glyphs.length;
+                
+                document.getElementById('loadStatus').innerHTML = '<span class="font-loaded">✓ 加载成功</span>';
+                document.getElementById('totalGlyphs').textContent = numGlyphs.toLocaleString();
+                
+                // 提取所有字形
+                allGlyphs = [];
+                for (let i = 0; i < numGlyphs; i++) {
+                    const glyph = font.glyphs.get(i);
+                    allGlyphs.push({
+                        index: i,
+                        name: glyph.name || `glyph${i}`,
+                        unicode: glyph.unicode,
+                        unicodes: glyph.unicodes,
+                        char: glyph.unicode ? String.fromCodePoint(glyph.unicode) : null
+                    });
+                }
+
+                loadGlyphs();
+                loadNamedGlyphs();
+                loadPUAGlyphs();
+            })
+            .catch(err => {
+                document.getElementById('loadStatus').innerHTML = '<span class="font-error">✗ 加载失败</span>';
+                console.error('字体加载错误:', err);
+            });
+
+        function loadGlyphs() {
+            pageSize = parseInt(document.getElementById('pageSize').value) || 200;
+            currentPage = 1;
+            displayGlyphs(allGlyphs);
+        }
+
+        function displayGlyphs(glyphs) {
+            displayedGlyphs = glyphs;
+            const grid = document.getElementById('glyphGrid');
+            grid.innerHTML = '';
+
+            const start = (currentPage - 1) * pageSize;
+            const end = Math.min(start + pageSize, glyphs.length);
+            const pageGlyphs = glyphs.slice(start, end);
+
+            pageGlyphs.forEach(glyph => {
+                const cell = createGlyphCell(glyph);
+                grid.appendChild(cell);
+            });
+
+            document.getElementById('displayedCount').textContent = `${end}/${glyphs.length}`;
+            document.getElementById('progressFill').style.width = `${(end / glyphs.length) * 100}%`;
+
+            updatePagination(glyphs.length);
+        }
+
+        function createGlyphCell(glyph) {
+            const cell = document.createElement('div');
+            cell.className = 'glyph-cell';
+            cell.onclick = () => showDetail(glyph);
+
+            const charDiv = document.createElement('div');
+            charDiv.className = 'glyph-char';
+
+            const indexSpan = document.createElement('span');
+            indexSpan.className = 'glyph-index';
+            indexSpan.textContent = glyph.index;
+
+            // 使用 SVG 直接渲染字形
+            const glyphObj = font.glyphs.get(glyph.index);
+            const path = glyphObj.getPath(0, 40, 40); // x=0, y=40(baseline), fontSize=40
+            const bbox = path.getBoundingBox();
+            
+            // 扩展边界框以确保完整显示
+            const padding = 2;
+            const viewX = bbox.x1 - padding;
+            const viewY = bbox.y1 - padding;
+            const viewW = (bbox.x2 - bbox.x1) + padding * 2;
+            const viewH = (bbox.y2 - bbox.y1) + padding * 2;
+            
+            const svgPath = path.toSVG(2);
+            
+            if (svgPath) {
+                charDiv.innerHTML = `<svg viewBox="${viewX} ${viewY} ${viewW} ${viewH}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">${svgPath}</svg>`;
+            } else if (glyph.char) {
+                charDiv.style.fontFamily = 'YiSyllableFont, Arial';
+                charDiv.style.fontSize = '36px';
+                charDiv.textContent = glyph.char;
+            }
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'glyph-info';
+            if (glyph.unicode) {
+                infoDiv.textContent = `U+${glyph.unicode.toString(16).toUpperCase().padStart(4, '0')}`;
+            } else {
+                infoDiv.textContent = `GID:${glyph.index}`;
+            }
+
+            cell.appendChild(charDiv);
+            cell.appendChild(indexSpan);
+            cell.appendChild(infoDiv);
+
+            return cell;
+        }
+
+        function showDetail(glyph) {
+            const panel = document.getElementById('detailPanel');
+            const overlay = document.getElementById('detailOverlay');
+            
+            const detailChar = document.getElementById('detailChar');
+            detailChar.innerHTML = '';
+            
+            // 使用 SVG 渲染大字形
+            const glyphObj = font.glyphs.get(glyph.index);
+            const path = glyphObj.getPath(0, 160, 160);
+            const bbox = path.getBoundingBox();
+            
+            // 扩展边界框以确保完整显示
+            const padding = 5;
+            const viewX = bbox.x1 - padding;
+            const viewY = bbox.y1 - padding;
+            const viewW = (bbox.x2 - bbox.x1) + padding * 2;
+            const viewH = (bbox.y2 - bbox.y1) + padding * 2;
+            
+            const svgPath = path.toSVG(2);
+            
+            if (svgPath) {
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('viewBox', `${viewX} ${viewY} ${viewW} ${viewH}`);
+                svg.setAttribute('width', '200');
+                svg.setAttribute('height', '200');
+                svg.style.display = 'block';
+                svg.style.margin = '0 auto';
+                svg.style.maxWidth = '100%';
+                svg.style.maxHeight = '100%';
+                svg.innerHTML = svgPath;
+                detailChar.appendChild(svg);
+            } else if (glyph.char) {
+                const charSpan = document.createElement('span');
+                charSpan.style.fontFamily = 'YiSyllableFont, Arial';
+                charSpan.style.fontSize = '120px';
+                charSpan.style.display = 'block';
+                charSpan.style.textAlign = 'center';
+                charSpan.textContent = glyph.char;
+                detailChar.appendChild(charSpan);
+            } else {
+                detailChar.innerHTML = '<span style="color:#999;">无字符</span>';
+            }
+
+            // 显示信息
+            const detailInfo = document.getElementById('detailInfo');
+            let infoHTML = '';
+            infoHTML += `<p><strong>字形索引 (GID):</strong> ${glyph.index}</p>`;
+            infoHTML += `<p><strong>名称:</strong> ${glyph.name}</p>`;
+            if (glyph.unicode) {
+                infoHTML += `<p><strong>Unicode:</strong> U+${glyph.unicode.toString(16).toUpperCase().padStart(4, '0')}</p>`;
+                infoHTML += `<p><strong>十进制:</strong> ${glyph.unicode}</p>`;
+            }
+            if (glyph.char) {
+                infoHTML += `<p><strong>字符:</strong> ${glyph.char}</p>`;
+            }
+            infoHTML += `<p><button class="btn" onclick="copyGlyphInfo(${glyph.index})" style="margin-top:10px;">复制 Unicode</button></p>`;
+            
+            detailInfo.innerHTML = infoHTML;
+
+            panel.classList.add('show');
+            overlay.classList.add('show');
+        }
+
+        function closeDetail() {
+            document.getElementById('detailPanel').classList.remove('show');
+            document.getElementById('detailOverlay').classList.remove('show');
+        }
+
+        function copyGlyphInfo(index) {
+            const glyph = allGlyphs[index];
+            let text = '';
+            if (glyph.unicode) {
+                text = String.fromCodePoint(glyph.unicode);
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                alert('已复制到剪贴板!');
+            });
+        }
+
+        function updatePagination(total) {
+            const pagination = document.getElementById('pagination');
+            const totalPages = Math.ceil(total / pageSize);
+
+            let html = '';
+            html += `<button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>`;
+            html += `<span class="page-info">第 <input type="number" value="${currentPage}" min="1" max="${totalPages}" onchange="goToPage(this.value)"> / ${totalPages} 页</span>`;
+            html += `<button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+            html += `<button onclick="goToPage(1)">首页</button>`;
+            html += `<button onclick="goToPage(${totalPages})">末页</button>`;
+
+            pagination.innerHTML = html;
+        }
+
+        function goToPage(page) {
+            const totalPages = Math.ceil(displayedGlyphs.length / pageSize);
+            page = parseInt(page);
+            if (page < 1) page = 1;
+            if (page > totalPages) page = totalPages;
+            currentPage = page;
+            displayGlyphs(displayedGlyphs);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.style.display = 'none');
+            document.getElementById(`tab-${tab}`).style.display = 'block';
+        }
+
+        function loadNamedGlyphs() {
+            const namedGlyphs = allGlyphs.filter(g => g.name && !g.name.startsWith('glyph'));
+            const grid = document.getElementById('namedGlyphGrid');
+            grid.innerHTML = '';
+
+            namedGlyphs.slice(0, 500).forEach(glyph => {
+                const cell = createGlyphCell(glyph);
+                grid.appendChild(cell);
+            });
+        }
+
+        function loadPUAGlyphs() {
+            // 私有使用区: E000-F8FF
+            const puaGlyphs = allGlyphs.filter(g => g.unicode && g.unicode >= 0xE000 && g.unicode <= 0xF8FF);
+            const grid = document.getElementById('puaGlyphGrid');
+            grid.innerHTML = '';
+
+            puaGlyphs.forEach(glyph => {
+                const cell = createGlyphCell(glyph);
+                grid.appendChild(cell);
+            });
+
+            if (puaGlyphs.length === 0) {
+                grid.innerHTML = '<p style="color:#666;text-align:center;grid-column:1/-1;">此字体未使用私有使用区字符</p>';
+            }
+        }
+
+        function handleSearch(event) {
+            if (event.key === 'Enter') {
+                const query = document.getElementById('searchInput').value.trim().toLowerCase();
+                if (!query) {
+                    loadGlyphs();
+                    return;
+                }
+
+                let results;
+                if (/^\d+$/.test(query)) {
+                    // 数字搜索 - 按索引搜索
+                    const index = parseInt(query);
+                    results = allGlyphs.filter(g => g.index === index);
+                } else {
+                    // 名称搜索
+                    results = allGlyphs.filter(g => 
+                        g.name && g.name.toLowerCase().includes(query)
+                    );
+                }
+
+                if (results.length > 0) {
+                    currentPage = 1;
+                    displayGlyphs(results);
+                } else {
+                    document.getElementById('glyphGrid').innerHTML = '<p style="color:#666;text-align:center;grid-column:1/-1;">未找到匹配的字形</p>';
+                }
+            }
+        }
+
+        function viewAllGlyphs() {
+            currentPage = 1;
+            document.getElementById('pageSize').value = 500;
+            pageSize = 500;
+            displayGlyphs(allGlyphs);
+        }
+    </script>
+</body>
+</html>
