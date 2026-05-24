@@ -95,6 +95,65 @@
             align-items: center;
         }
 
+        .font-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px 4px 4px;
+            background: #f5f5f5;
+            border-radius: 20px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .font-selector label {
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .font-btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            background: transparent;
+            color: #666;
+        }
+
+        .font-btn.active {
+            background: #333;
+            color: #fff;
+        }
+
+        .font-btn:hover:not(.active) {
+            background: #e5e5e5;
+        }
+
+        .font-btn .font-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .font-btn.active .font-indicator {
+            background: #4ade80;
+        }
+
+        .font-btn:not(.active) .font-indicator {
+            background: #ccc;
+        }
+
+        .font-indicator.bold { background: #f59e0b; }
+        .font-indicator.bold.active { background: #4ade80; }
+        .font-indicator.regular { background: #60a5fa; }
+        .font-indicator.regular.active { background: #4ade80; }
+
         .control-group {
             display: flex;
             align-items: center;
@@ -407,7 +466,7 @@
 <body>
     <div class="container">
         <h1>ꀊꂷꐥꇇꐥ - 诺苏彝文字形浏览器</h1>
-        <p class="subtitle">Yi Syllable Font Glyph Browser</p>
+        <p class="subtitle">YiwenFont & Yi Syllable Font Glyph Browser</p>
 
         <div class="status-bar">
             <div class="status-item">
@@ -415,6 +474,10 @@
                 <span id="loadStatus">
                     <span class="loading-indicator"></span> 加载中...
                 </span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">当前字体:</span>
+                <span class="status-value" id="currentFontName">YiSyllableFont-Regular</span>
             </div>
             <div class="status-item">
                 <span class="status-label">字形总数:</span>
@@ -438,6 +501,15 @@
             <div class="tab-content">
                 <div id="tab-all" class="tab-panel">
                     <div class="controls">
+                        <div class="font-selector">
+                            <label>字体:</label>
+                            <button class="font-btn active" id="font-bold" onclick="switchFont('bold')">
+                                <span class="font-indicator bold"></span>ꀊꂷꐥꇇ
+                            </button>
+                            <button class="font-btn" id="font-regular" onclick="switchFont('regular')">
+                                <span class="font-indicator regular"></span>ꀊꂷꐥꇇ
+                            </button>
+                        </div>
                         <div class="control-group">
                             <label>每页显示:</label>
                             <input type="number" id="pageSize" value="200" min="50" max="500" onchange="loadGlyphs()">
@@ -469,46 +541,80 @@
     </div>
 
     <script>
-        let font = null;
+        let fonts = {
+            bold: null,
+            regular: null
+        };
+        let currentFont = 'regular';
         let allGlyphs = [];
         let currentPage = 1;
         let pageSize = 200;
         let currentTab = 'all';
         let displayedGlyphs = [];
 
-        // 加载字体
+        // 字体名称映射
+        const fontNames = {
+            bold: 'YiwenFont_Bold',
+            regular: 'YiSyllableFont-Regular'
+        };
+
+        // 获取当前活动字体对象
+        function getActiveFont() {
+            return fonts[currentFont];
+        }
+
+        // 加载两个字体
         document.getElementById('loadStatus').innerHTML = '<span class="loading-indicator"></span> 正在加载字体...';
 
-        fetch('YiSyllableFont-Regular.ttf')
-            .then(response => response.arrayBuffer())
-            .then(data => {
-                font = opentype.parse(data);
-                const numGlyphs = font.glyphs.length;
-                
-                document.getElementById('loadStatus').innerHTML = '<span class="font-loaded">✓ 加载成功</span>';
-                document.getElementById('totalGlyphs').textContent = numGlyphs.toLocaleString();
-                
-                // 提取所有字形
-                allGlyphs = [];
-                for (let i = 0; i < numGlyphs; i++) {
-                    const glyph = font.glyphs.get(i);
-                    allGlyphs.push({
-                        index: i,
-                        name: glyph.name || `glyph${i}`,
-                        unicode: glyph.unicode,
-                        unicodes: glyph.unicodes,
-                        char: glyph.unicode ? String.fromCodePoint(glyph.unicode) : null
-                    });
-                }
+        Promise.all([
+            fetch('YiwenFont_Bold.ttf').then(r => r.arrayBuffer()),
+            fetch('YiSyllableFont-Regular.ttf').then(r => r.arrayBuffer())
+        ])
+        .then(([boldData, regularData]) => {
+            fonts.bold = opentype.parse(boldData);
+            fonts.regular = opentype.parse(regularData);
 
-                loadGlyphs();
-                loadNamedGlyphs();
-                loadPUAGlyphs();
-            })
-            .catch(err => {
-                document.getElementById('loadStatus').innerHTML = '<span class="font-error">✗ 加载失败</span>';
-                console.error('字体加载错误:', err);
-            });
+            const numGlyphs = fonts.regular.glyphs.length;
+
+            document.getElementById('loadStatus').innerHTML = `<span class="font-loaded">✓ 双字体加载成功</span>`;
+            document.getElementById('totalGlyphs').textContent = numGlyphs.toLocaleString();
+
+            // 提取所有字形 (使用 regular 字体作为参考)
+            allGlyphs = [];
+            for (let i = 0; i < numGlyphs; i++) {
+                const glyph = fonts.regular.glyphs.get(i);
+                allGlyphs.push({
+                    index: i,
+                    name: glyph.name || `glyph${i}`,
+                    unicode: glyph.unicode,
+                    unicodes: glyph.unicodes,
+                    char: glyph.unicode ? String.fromCodePoint(glyph.unicode) : null
+                });
+            }
+
+            loadGlyphs();
+            loadNamedGlyphs();
+            loadPUAGlyphs();
+        })
+        .catch(err => {
+            document.getElementById('loadStatus').innerHTML = '<span class="font-error">✗ 字体加载失败</span>';
+            console.error('字体加载错误:', err);
+        });
+
+        // 切换字体
+        function switchFont(fontType) {
+            currentFont = fontType;
+
+            // 更新按钮状态
+            document.getElementById('font-bold').classList.toggle('active', fontType === 'bold');
+            document.getElementById('font-regular').classList.toggle('active', fontType === 'regular');
+
+            // 更新状态栏显示
+            document.getElementById('currentFontName').textContent = fontNames[fontType];
+
+            // 重新显示当前页的字形
+            displayGlyphs(displayedGlyphs);
+        }
 
         function loadGlyphs() {
             pageSize = parseInt(document.getElementById('pageSize').value) || 200;
@@ -548,24 +654,25 @@
             indexSpan.className = 'glyph-index';
             indexSpan.textContent = glyph.index;
 
-            // 使用 SVG 直接渲染字形
+            // 使用当前选中的字体渲染字形
+            const font = getActiveFont();
             const glyphObj = font.glyphs.get(glyph.index);
             const path = glyphObj.getPath(0, 40, 40); // x=0, y=40(baseline), fontSize=40
             const bbox = path.getBoundingBox();
-            
+
             // 扩展边界框以确保完整显示
             const padding = 2;
             const viewX = bbox.x1 - padding;
             const viewY = bbox.y1 - padding;
             const viewW = (bbox.x2 - bbox.x1) + padding * 2;
             const viewH = (bbox.y2 - bbox.y1) + padding * 2;
-            
+
             const svgPath = path.toSVG(2);
-            
+
             if (svgPath) {
                 charDiv.innerHTML = `<svg viewBox="${viewX} ${viewY} ${viewW} ${viewH}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">${svgPath}</svg>`;
             } else if (glyph.char) {
-                charDiv.style.fontFamily = 'YiSyllableFont, Arial';
+                charDiv.style.fontFamily = `${fontNames[currentFont]}, Arial`;
                 charDiv.style.fontSize = '36px';
                 charDiv.textContent = glyph.char;
             }
@@ -588,24 +695,25 @@
         function showDetail(glyph) {
             const panel = document.getElementById('detailPanel');
             const overlay = document.getElementById('detailOverlay');
-            
+
             const detailChar = document.getElementById('detailChar');
             detailChar.innerHTML = '';
-            
-            // 使用 SVG 渲染大字形
+
+            // 使用当前选中的字体渲染大字形
+            const font = getActiveFont();
             const glyphObj = font.glyphs.get(glyph.index);
             const path = glyphObj.getPath(0, 160, 160);
             const bbox = path.getBoundingBox();
-            
+
             // 扩展边界框以确保完整显示
             const padding = 5;
             const viewX = bbox.x1 - padding;
             const viewY = bbox.y1 - padding;
             const viewW = (bbox.x2 - bbox.x1) + padding * 2;
             const viewH = (bbox.y2 - bbox.y1) + padding * 2;
-            
+
             const svgPath = path.toSVG(2);
-            
+
             if (svgPath) {
                 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 svg.setAttribute('viewBox', `${viewX} ${viewY} ${viewW} ${viewH}`);
@@ -619,7 +727,7 @@
                 detailChar.appendChild(svg);
             } else if (glyph.char) {
                 const charSpan = document.createElement('span');
-                charSpan.style.fontFamily = 'YiSyllableFont, Arial';
+                charSpan.style.fontFamily = `${fontNames[currentFont]}, Arial`;
                 charSpan.style.fontSize = '120px';
                 charSpan.style.display = 'block';
                 charSpan.style.textAlign = 'center';
@@ -641,8 +749,9 @@
             if (glyph.char) {
                 infoHTML += `<p><strong>字符:</strong> ${glyph.char}</p>`;
             }
+            infoHTML += `<p><strong>当前字体:</strong> ${fontNames[currentFont]}</p>`;
             infoHTML += `<p><button class="btn" onclick="copyGlyphInfo(${glyph.index})" style="margin-top:10px;">复制 Unicode</button></p>`;
-            
+
             detailInfo.innerHTML = infoHTML;
 
             panel.classList.add('show');
